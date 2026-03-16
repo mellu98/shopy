@@ -16,10 +16,13 @@ export default async function handleRequest(
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
   // Ensure the app can be embedded in Shopify admin iframe
-  responseHeaders.set(
-    "Content-Security-Policy",
-    "frame-ancestors https://*.myshopify.com https://admin.shopify.com;"
-  );
+  // Only set frame-ancestors if no CSP was set by the library
+  if (!responseHeaders.has("Content-Security-Policy")) {
+    responseHeaders.set(
+      "Content-Security-Policy",
+      "frame-ancestors https://*.myshopify.com https://admin.shopify.com;"
+    );
+  }
   const userAgent = request.headers.get("user-agent") || "";
   const callbackName = isbot(userAgent) ? "onAllReady" : "onShellReady";
 
