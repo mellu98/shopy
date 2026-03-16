@@ -995,7 +995,9 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
 }
 
 /**
- * Build the settings_data.json with merchant colors/branding
+ * Build the settings_data.json with merchant colors/branding.
+ * Preserves color_schemes structure while updating with merchant colors.
+ * Removes store-specific image references that won't exist on the new store.
  */
 export function buildSettingsData(
   config: MerchantConfig,
@@ -1004,11 +1006,36 @@ export function buildSettingsData(
   // Deep clone original settings
   const settings = JSON.parse(JSON.stringify(originalSettings));
 
-  // Update color scheme if present in current settings
   if (settings.current) {
-    settings.current = {
-      ...settings.current,
-    };
+    // Update primary color schemes with merchant colors
+    if (settings.current.color_schemes) {
+      // Update background-1 (main light scheme)
+      if (settings.current.color_schemes["background-1"]) {
+        settings.current.color_schemes["background-1"].settings.button = config.colors.buttonBg;
+        settings.current.color_schemes["background-1"].settings.button_label = config.colors.buttonText;
+        settings.current.color_schemes["background-1"].settings.text = config.colors.body;
+      }
+      // Update accent-2 (default card/section scheme)
+      if (settings.current.color_schemes["accent-2"]) {
+        settings.current.color_schemes["accent-2"].settings.button = config.colors.buttonBg;
+        settings.current.color_schemes["accent-2"].settings.button_label = config.colors.buttonText;
+        settings.current.color_schemes["accent-2"].settings.text = config.colors.body;
+      }
+    }
+
+    // Remove store-specific image references (they won't exist on the new store)
+    delete settings.current.logo;
+    delete settings.current.favicon;
+    delete settings.current.logo_white;
+    delete settings.current.load_img;
+    delete settings.current.brand_image;
+
+    // Update brand info
+    settings.current.brand_headline = config.brandName;
+    settings.current.brand_description = `<p>${config.missionText || config.brandName}</p>`;
+
+    // Clear store-specific cart drawer settings
+    delete settings.current.cart_gift_icon;
   }
 
   return settings;
