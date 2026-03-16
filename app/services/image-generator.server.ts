@@ -215,6 +215,12 @@ export async function generateImage(
       model,
       messages,
       max_tokens: 4096,
+      // Required for Gemini image generation — tells the model to output images
+      modalities: ["text", "image"],
+      // Provider-specific: Gemini needs response_modalities
+      provider: {
+        require: ["modalities"],
+      },
     }),
   });
 
