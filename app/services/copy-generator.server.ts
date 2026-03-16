@@ -24,25 +24,27 @@ function getModel(): string {
  * System prompt: "Signora Market Copy" — direct-response copywriter
  * specialized in high-converting landing pages.
  */
-const SYSTEM_PROMPT = `You are a specialized direct-response copywriter focused on creating extremely high-converting landing pages for any type of offer: physical ecommerce products, digital products, services, subscriptions, lead generation, and info products.
-
-You analyze example landing pages provided by the user and extract structural patterns, persuasive angles, emotional triggers, offer positioning, objection handling, and formatting logic.
+const SYSTEM_PROMPT = `You are a specialized direct-response copywriter focused on creating high-converting landing pages for any type of offer: physical ecommerce products, digital products, services, subscriptions, lead generation, and info products.
 
 You ALWAYS write in highly colloquial Italian, as if speaking to a middle-aged woman at a local market: simple, direct, concrete, persuasive, emotionally engaging, benefit-driven, and sharp. The tone never becomes corporate, institutional, or academic, regardless of niche.
 
+CRITICAL RULE — CONCISENESS: Every piece of copy must be SHORT, PUNCHY, and SCANNABLE. E-commerce shoppers do NOT read long text. Follow these principles:
+- Headlines: 3-6 words max. Hook immediately.
+- Descriptions: 1-2 short sentences max. Never a full paragraph.
+- Benefits: one punchy line each, under 45 characters.
+- FAQ answers: 1-2 sentences max. Direct and reassuring.
+- Never use filler words, corporate jargon, or unnecessary adjectives.
+- If you can say it in 5 words, don't use 15.
+
 Headlines must follow this structure whenever possible: adjective + product/service name + primary function + strong added value. The tone must immediately capture attention and psychologically hook the reader.
 
-Subheadlines must reinforce the promise with specific mechanisms, numbers, outcomes, or concrete proof.
+The copy must reduce cognitive load: short sentences, simple words, clear benefits, strong call to action.
 
-The copy must reduce cognitive load: short sentences, simple words, clear benefits, repetition of key outcomes, strong call to action, urgency, objection handling, and persuasive reassurance.
+You use negative reviews and objections to craft powerful headlines and objection-destroying copy.
 
-You use negative reviews and objections to craft powerful headlines, mechanisms, differentiation, and objection-destroying sections.
+You must not produce generic copy. You prioritize clarity, persuasion, and conversion optimization above creativity.
 
-All output must be long-form and structured to fully fill all necessary sections of a Shopify-style product landing page template. The length should be comparable to professional reference landing pages, ensuring complete coverage of every persuasive section.
-
-You must not produce generic copy. You prioritize clarity, persuasion, psychological triggers, and conversion optimization above creativity.
-
-CRITICAL: You MUST respond with ONLY valid JSON matching the exact schema requested. No markdown, no explanation, no text outside the JSON object.`;
+CRITICAL: You MUST respond with ONLY valid JSON matching the exact schema requested. No markdown, no explanation, no text outside the JSON object. RESPECT ALL CHARACTER LIMITS specified in the schema.`;
 
 /**
  * Build the user prompt with all merchant input
@@ -67,78 +69,76 @@ ${input.negativeReviews}
 
 LANGUAGE: Write ALL copy in ${lang}.
 
-You MUST respond with a single JSON object with this EXACT structure (no extra keys, no missing keys):
+You MUST respond with a single JSON object with this EXACT structure (no extra keys, no missing keys).
+⚠️ RESPECT THE MAX CHARACTER LIMITS — they are HARD limits. Count characters before writing.
 
 {
-  "productTitle": "compelling product title/headline",
-  "productSubtitle": "subheadline reinforcing the promise with mechanism/proof",
-  "productDescription": "2-3 paragraphs of persuasive product description",
+  "productTitle": "MAX 40 CHARS — punchy product headline, 3-6 words",
+  "productSubtitle": "MAX 80 CHARS — one short sentence reinforcing the promise",
+  "productDescription": "MAX 150 CHARS — one concise paragraph, benefit-driven",
   "benefits": [
-    {"emoji": "✅", "text": "benefit text 1"},
-    {"emoji": "✅", "text": "benefit text 2"},
-    {"emoji": "✅", "text": "benefit text 3"},
-    {"emoji": "✅", "text": "benefit text 4"},
-    {"emoji": "✅", "text": "benefit text 5"},
-    {"emoji": "✅", "text": "benefit text 6"}
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"},
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"},
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"},
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"},
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"},
+    {"emoji": "✅", "text": "MAX 45 CHARS — one punchy benefit line"}
   ],
   "features": [
-    {"icon": "emoji", "title": "feature title", "description": "feature description"},
-    {"icon": "emoji", "title": "feature title", "description": "feature description"},
-    {"icon": "emoji", "title": "feature title", "description": "feature description"},
-    {"icon": "emoji", "title": "feature title", "description": "feature description"}
+    {"icon": "emoji", "title": "MAX 25 CHARS — short feature name", "description": "MAX 80 CHARS — one sentence explaining the feature"},
+    {"icon": "emoji", "title": "MAX 25 CHARS", "description": "MAX 80 CHARS"},
+    {"icon": "emoji", "title": "MAX 25 CHARS", "description": "MAX 80 CHARS"},
+    {"icon": "emoji", "title": "MAX 25 CHARS", "description": "MAX 80 CHARS"}
   ],
   "faqs": [
-    {"question": "question 1", "answer": "detailed answer 1"},
-    {"question": "question 2", "answer": "detailed answer 2"},
-    {"question": "question 3", "answer": "detailed answer 3"},
-    {"question": "question 4", "answer": "detailed answer 4"},
-    {"question": "question 5", "answer": "detailed answer 5"}
+    {"question": "MAX 50 CHARS — short question", "answer": "MAX 120 CHARS — 1-2 sentences, direct and reassuring"},
+    {"question": "MAX 50 CHARS", "answer": "MAX 120 CHARS"},
+    {"question": "MAX 50 CHARS", "answer": "MAX 120 CHARS"},
+    {"question": "MAX 50 CHARS", "answer": "MAX 120 CHARS"},
+    {"question": "MAX 50 CHARS", "answer": "MAX 120 CHARS"}
   ],
-  "reviewHeading": "heading for review section",
-  "reviewSubheading": "subheading for review section",
-  "ctaButtonText": "call to action button text",
-  "guaranteeTitle": "guarantee section title (e.g. risk-free trial)",
-  "guaranteeDescription": "detailed guarantee description that destroys objections",
-  "guaranteeText1": "short guarantee bar text 1 (e.g. Fast Shipping)",
-  "guaranteeText2": "short guarantee bar text 2 (e.g. Free Returns)",
-  "guaranteeText3": "short guarantee bar text 3 (e.g. 30 Day Guarantee)",
-  "comparisonHeading": "comparison section heading",
-  "comparisonDescription": "comparison section description",
+  "reviewHeading": "MAX 35 CHARS — review section heading",
+  "reviewSubheading": "MAX 60 CHARS — review section subheading",
+  "ctaButtonText": "MAX 20 CHARS — action verb + object",
+  "guaranteeTitle": "MAX 40 CHARS — guarantee headline",
+  "guaranteeDescription": "MAX 120 CHARS — 1-2 sentences destroying objections",
+  "guaranteeText1": "MAX 25 CHARS — e.g. Spedizione Veloce",
+  "guaranteeText2": "MAX 25 CHARS — e.g. Resi Gratuiti",
+  "guaranteeText3": "MAX 25 CHARS — e.g. Garanzia 30 Giorni",
+  "comparisonHeading": "MAX 35 CHARS — comparison heading",
+  "comparisonDescription": "MAX 130 CHARS — why your product wins, 1-2 sentences",
   "comparisonItems": [
-    {"feature": "comparison feature 1"},
-    {"feature": "comparison feature 2"},
-    {"feature": "comparison feature 3"},
-    {"feature": "comparison feature 4"},
-    {"feature": "comparison feature 5"}
+    {"feature": "MAX 30 CHARS — short comparison point"},
+    {"feature": "MAX 30 CHARS"},
+    {"feature": "MAX 30 CHARS"},
+    {"feature": "MAX 30 CHARS"},
+    {"feature": "MAX 30 CHARS"}
   ],
-  "percentagesHeading": "stats section heading",
+  "percentagesHeading": "MAX 35 CHARS — stats section heading",
   "percentageStats": [
-    {"percentage": 95, "text": "stat description 1"},
-    {"percentage": 88, "text": "stat description 2"},
-    {"percentage": 92, "text": "stat description 3"}
+    {"percentage": 95, "text": "MAX 30 CHARS — short stat label"},
+    {"percentage": 88, "text": "MAX 30 CHARS"},
+    {"percentage": 92, "text": "MAX 30 CHARS"}
   ],
   "imageTextSections": [
-    {"heading": "section heading 1", "text": "persuasive paragraph 1 (3-4 sentences)", "buttonLabel": "CTA button text"},
-    {"heading": "section heading 2", "text": "persuasive paragraph 2 (3-4 sentences)", "buttonLabel": "CTA button text"},
-    {"heading": "section heading 3", "text": "persuasive paragraph 3 (3-4 sentences)", "buttonLabel": "CTA button text"}
+    {"heading": "MAX 30 CHARS — section heading", "text": "MAX 140 CHARS — 1-2 sentences, one persuasive angle", "buttonLabel": "MAX 20 CHARS"},
+    {"heading": "MAX 30 CHARS", "text": "MAX 140 CHARS", "buttonLabel": "MAX 20 CHARS"},
+    {"heading": "MAX 30 CHARS", "text": "MAX 140 CHARS", "buttonLabel": "MAX 20 CHARS"}
   ],
-  "missionText": "brand mission text for homepage (2-3 sentences)",
-  "whyChooseUsHeading": "why choose us section heading",
+  "missionText": "MAX 120 CHARS — 1-2 sentences about the brand mission",
+  "whyChooseUsHeading": "MAX 30 CHARS — section heading",
   "whyChooseUsPoints": [
-    {"title": "point title 1", "description": "point description 1"},
-    {"title": "point title 2", "description": "point description 2"},
-    {"title": "point title 3", "description": "point description 3"}
+    {"title": "MAX 25 CHARS — point title", "description": "MAX 80 CHARS — one sentence"},
+    {"title": "MAX 25 CHARS", "description": "MAX 80 CHARS"},
+    {"title": "MAX 25 CHARS", "description": "MAX 80 CHARS"}
   ]
 }
 
 IMPORTANT RULES:
-- Every piece of copy must be persuasive, benefit-driven, and emotionally engaging
-- Use the negative reviews/objections to craft objection-destroying copy in the guarantee, FAQ, and comparison sections
+- ⚠️ CONCISENESS IS THE #1 PRIORITY. Short, punchy copy converts better than long text. Respect ALL character limits strictly.
+- Use the negative reviews/objections to craft objection-destroying copy in guarantee, FAQ, and comparison sections
 - Benefits should address specific pain points from the buyer persona
-- The guarantee section must be powerful enough to eliminate purchase anxiety
-- FAQ answers should be detailed and persuasive, not just informative
-- Image+text sections should each focus on a different persuasive angle (problem, solution, social proof, mechanism, transformation)
-- Comparison items should highlight clear advantages over competitors
+- Image+text sections: each focuses on ONE persuasive angle (problem, solution, social proof)
 - ALL percentages must be realistic and believable
 - Output ONLY the JSON object, nothing else`;
 }
@@ -167,7 +167,7 @@ export async function generateCopy(
         { role: "user", content: buildUserPrompt(input) },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 4000,
     }),
   });
 
