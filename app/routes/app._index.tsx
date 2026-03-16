@@ -82,6 +82,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Parse generated images if present
     const imagesJson = formData.get("images") as string;
     const generatedImages = imagesJson ? JSON.parse(imagesJson) : [];
+    console.log(`[Action] Received ${generatedImages.length} images. Fields per image:`, generatedImages.map((img: any) => ({ category: img.category, hasBase64: !!img.base64, base64Len: img.base64?.length || 0, mimeType: img.mimeType })));
 
     const jobId = await createGenerationJob(session.shop, config);
     const result = await generateTheme(admin, session.shop, config, jobId, generatedImages);
