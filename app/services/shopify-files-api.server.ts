@@ -38,37 +38,49 @@ async function uploadSingleImage(
 
   // Step 1: Create staged upload target
   console.log(`[ShopifyFiles] Step 1: Creating staged upload for ${filename}...`);
-  const stagedResponse = await admin.graphql(
-    `#graphql
-    mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
-      stagedUploadsCreate(input: $input) {
-        stagedTargets {
-          url
-          resourceUrl
-          parameters {
-            name
-            value
+  let stagedResponse;
+  try {
+    stagedResponse = await admin.graphql(
+      `#graphql
+      mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+        stagedUploadsCreate(input: $input) {
+          stagedTargets {
+            url
+            resourceUrl
+            parameters {
+              name
+              value
+            }
+          }
+          userErrors {
+            field
+            message
           }
         }
-        userErrors {
-          field
-          message
-        }
+      }`,
+      {
+        variables: {
+          input: [
+            {
+              filename,
+              mimeType: image.mimeType,
+              httpMethod: "POST",
+              resource: "FILE",
+            },
+          ],
+        },
       }
-    }`,
-    {
-      variables: {
-        input: [
-          {
-            filename,
-            mimeType: image.mimeType,
-            httpMethod: "POST",
-            resource: "FILE",
-          },
-        ],
-      },
+    );
+  } catch (gqlErr: any) {
+    // admin.graphql() throws a Response object on HTTP errors (e.g., missing scope)
+    let errDetail = String(gqlErr);
+    if (gqlErr && typeof gqlErr.text === "function") {
+      try { errDetail = await gqlErr.text(); } catch {}
+    } else if (gqlErr?.message) {
+      errDetail = gqlErr.message;
     }
-  );
+    throw new Error(`GraphQL stagedUploadsCreate failed: ${errDetail.substring(0, 500)}`);
+  }
 
   const stagedData = await stagedResponse.json();
   const stagedTarget = stagedData.data?.stagedUploadsCreate?.stagedTargets?.[0];
@@ -111,38 +123,49 @@ async function uploadSingleImage(
   }
 
   // Step 3: Create the file in Shopify
-  const fileCreateResponse = await admin.graphql(
-    `#graphql
-    mutation fileCreate($files: [FileCreateInput!]!) {
-      fileCreate(files: $files) {
-        files {
-          id
-          alt
-          createdAt
-          ... on MediaImage {
-            image {
-              url
+  let fileCreateResponse;
+  try {
+    fileCreateResponse = await admin.graphql(
+      `#graphql
+      mutation fileCreate($files: [FileCreateInput!]!) {
+        fileCreate(files: $files) {
+          files {
+            id
+            alt
+            createdAt
+            ... on MediaImage {
+              image {
+                url
+              }
             }
           }
+          userErrors {
+            field
+            message
+          }
         }
-        userErrors {
-          field
-          message
-        }
+      }`,
+      {
+        variables: {
+          files: [
+            {
+              alt: `Generated ${image.category} image`,
+              contentType: "IMAGE",
+              originalSource: stagedTarget.resourceUrl,
+            },
+          ],
+        },
       }
-    }`,
-    {
-      variables: {
-        files: [
-          {
-            alt: `Generated ${image.category} image`,
-            contentType: "IMAGE",
-            originalSource: stagedTarget.resourceUrl,
-          },
-        ],
-      },
+    );
+  } catch (gqlErr: any) {
+    let errDetail = String(gqlErr);
+    if (gqlErr && typeof gqlErr.text === "function") {
+      try { errDetail = await gqlErr.text(); } catch {}
+    } else if (gqlErr?.message) {
+      errDetail = gqlErr.message;
     }
-  );
+    throw new Error(`GraphQL fileCreate failed: ${errDetail.substring(0, 500)}`);
+  }
 
   const fileData = await fileCreateResponse.json();
   const fileErrors = fileData.data?.fileCreate?.userErrors;
