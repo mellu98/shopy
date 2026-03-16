@@ -32,10 +32,12 @@ async function uploadSingleImage(
   image: ImageToUpload,
   index: number
 ): Promise<UploadedImage> {
+  console.log(`[ShopifyFiles] uploadSingleImage: category=${image.category}, base64Length=${image.base64?.length || 0}, mimeType=${image.mimeType}`);
   const ext = image.mimeType === "image/png" ? "png" : "jpg";
   const filename = `generated-${image.category}-${index}-${Date.now()}.${ext}`;
 
   // Step 1: Create staged upload target
+  console.log(`[ShopifyFiles] Step 1: Creating staged upload for ${filename}...`);
   const stagedResponse = await admin.graphql(
     `#graphql
     mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
@@ -189,8 +191,13 @@ export async function uploadImagesToShopify(
       onProgress?.(i + 1, images.length);
     } catch (err: any) {
       console.warn(
-        `[ShopifyFiles] Failed to upload ${images[i].category}: ${err.message}`
+        `[ShopifyFiles] Failed to upload ${images[i].category}: ${err?.message || err}`,
+        `| base64 length: ${images[i]?.base64?.length || 0}`,
+        `| mimeType: ${images[i]?.mimeType}`
       );
+      if (err?.response) {
+        try { console.warn(`[ShopifyFiles] Response:`, JSON.stringify(await err.response.json()).substring(0, 500)); } catch {}
+      }
       // Continue with other images — non-fatal
     }
 
