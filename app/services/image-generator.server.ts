@@ -174,8 +174,7 @@ export function categoryRequiresText(category: ImageCategory): boolean {
 
 /**
  * Generate an e-commerce image using OpenAI gpt-image-1.5.
- * Uses /v1/images/generations (text-to-image).
- * The product description is included in the prompt for context.
+ * Uses /v1/images/edits with the product photo as reference image.
  */
 export async function generateImage(
   input: ImageGenerationInput
@@ -183,21 +182,30 @@ export async function generateImage(
   const apiKey = getOpenAIApiKey();
   const prompt = buildImagePrompt(input);
 
-  console.log(`[ImageGen] Generating ${input.category} via OpenAI gpt-image-1.5...`);
+  console.log(`[ImageGen] Generating ${input.category} via OpenAI gpt-image-1.5 (edits)...`);
 
-  const response = await fetch(OPENAI_IMAGES_GEN_URL, {
+  // Build multipart form data with the product image as reference
+  const formData = new FormData();
+  formData.append("model", "gpt-image-1.5");
+  formData.append("prompt", prompt);
+  formData.append("n", "1");
+  formData.append("size", "1024x1024");
+  formData.append("quality", "medium");
+
+  // Attach product image as reference
+  if (input.productImageBase64) {
+    const imgBuffer = Buffer.from(input.productImageBase64, "base64");
+    const ext = input.productImageMimeType?.includes("png") ? "png" : "jpg";
+    const blob = new Blob([imgBuffer], { type: input.productImageMimeType || "image/jpeg" });
+    formData.append("image[]", blob, `product.${ext}`);
+  }
+
+  const response = await fetch(OPENAI_IMAGES_URL, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: "gpt-image-1.5",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "medium",
-    }),
+    body: formData,
   });
 
   if (!response.ok) {
