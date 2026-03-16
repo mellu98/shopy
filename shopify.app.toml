@@ -4,7 +4,7 @@ application_url = "https://theme-builder-0q91.onrender.com"
 embedded = true
 
 [access_scopes]
-scopes = "read_themes,write_themes,read_products,read_content"
+scopes = "read_themes,write_themes,read_products,read_content,write_files"
 
 [auth]
 redirect_urls = [

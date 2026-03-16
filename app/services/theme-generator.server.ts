@@ -1,5 +1,5 @@
 import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
-import type { MerchantConfig, ThemeFile } from "~/types";
+import type { MerchantConfig, ThemeFile, ImageCategory } from "~/types";
 import { readMasterThemeFiles, readMasterThemeFile } from "./master-theme.server";
 import {
   buildProductTemplate,
@@ -7,6 +7,7 @@ import {
   buildSettingsData,
 } from "./template-builder.server";
 import { createAndUploadTheme } from "./shopify-theme-api.server";
+import { uploadImagesToShopify } from "./shopify-files-api.server";
 import db from "~/db.server";
 
 /**
@@ -31,7 +32,8 @@ export async function generateTheme(
   admin: AdminApiContext,
   shop: string,
   config: MerchantConfig,
-  jobId?: string
+  jobId?: string,
+  generatedImages?: Array<{ base64: string; mimeType: string; category: ImageCategory }>
 ): Promise<GenerationResult> {
   // Update job status
   if (jobId) {
@@ -39,6 +41,51 @@ export async function generateTheme(
   }
 
   try {
+    // Step 0: Upload generated images to Shopify Files (if any)
+    if (generatedImages && generatedImages.length > 0) {
+      console.log(`[ThemeGenerator] Uploading ${generatedImages.length} images to Shopify Files...`);
+      try {
+        const urlMap = await uploadImagesToShopify(
+          admin,
+          generatedImages.map((img) => ({
+            category: img.category,
+            base64: img.base64,
+            mimeType: img.mimeType,
+          })),
+          (done, total) => {
+            console.log(`[ThemeGenerator] Image upload: ${done}/${total}`);
+          }
+        );
+
+        // Map uploaded image URLs to config fields
+        const heroUrl = urlMap.get("product_photo");
+        const lifestyleUrl = urlMap.get("lifestyle");
+        const ingredientsUrl = urlMap.get("ingredients");
+        const infographicUrl = urlMap.get("infographic");
+        const howToUrl = urlMap.get("how_to_process");
+        const socialProofUrl = urlMap.get("social_proof");
+
+        if (heroUrl) {
+          config.homepage.heroImageUrl = heroUrl;
+        }
+        config.product.lifestyleImages = [
+          lifestyleUrl || "",
+          socialProofUrl || "",
+        ].filter(Boolean);
+
+        // Map to imageTextSections
+        const imageUrls = [ingredientsUrl, infographicUrl, howToUrl].filter(Boolean) as string[];
+        for (let i = 0; i < imageUrls.length && i < config.imageTextSections.length; i++) {
+          config.imageTextSections[i].imageUrl = imageUrls[i];
+        }
+
+        console.log(`[ThemeGenerator] Successfully uploaded ${urlMap.size} images`);
+      } catch (imgErr: any) {
+        console.warn(`[ThemeGenerator] Image upload failed (non-fatal): ${imgErr.message}`);
+        // Continue without images — theme still works, just no custom images
+      }
+    }
+
     // Step 1: Read all master theme files
     const masterFiles = readMasterThemeFiles();
 

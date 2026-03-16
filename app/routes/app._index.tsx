@@ -28,7 +28,7 @@ import {
 } from "../services/theme-generator.server";
 import db from "../db.server";
 import type { MerchantConfig, BenefitItem, FaqItem, ReviewItem, FeatureItem, ComparisonItem, PercentageStat, ImageTextSection, CopyGenerationInput, GeneratedCopy, ImageCategory, GeneratedImage } from "../types";
-import { IMAGE_CATEGORIES } from "../types";
+// IMAGE_CATEGORIES labels defined inline in component
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const defaultConfig = getDefaultConfig();
@@ -78,8 +78,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   try {
     const config: MerchantConfig = JSON.parse(configJson);
+
+    // Parse generated images if present
+    const imagesJson = formData.get("images") as string;
+    const generatedImages = imagesJson ? JSON.parse(imagesJson) : [];
+
     const jobId = await createGenerationJob(session.shop, config);
-    const result = await generateTheme(admin, session.shop, config, jobId);
+    const result = await generateTheme(admin, session.shop, config, jobId, generatedImages);
 
     return json({
       success: true,
@@ -144,13 +149,22 @@ export default function Index() {
 
   // ─── Image Generation State ───
   const imageFetcher = useFetcher<{ success?: boolean; image?: GeneratedImage; error?: string }>();
-  const isImageGenerating = imageFetcher.state === "submitting" || imageFetcher.state === "loading";
   const [productImageBase64, setProductImageBase64] = useState<string>("");
   const [productImageMimeType, setProductImageMimeType] = useState<string>("image/jpeg");
   const [productImagePreview, setProductImagePreview] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<ImageCategory>("product_photo");
   const [generatedImages, setGeneratedImages] = useState<Array<{ base64: string; mimeType: string; category: ImageCategory }>>([]);
-  const [showImageGen, setShowImageGen] = useState(false);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [genStep, setGenStep] = useState(-1); // -1 = not started, 0-5 = current category
+  const lastProcessedGenStep = useRef(-1);
+  const ALL_CATEGORIES: ImageCategory[] = ["product_photo", "lifestyle", "ingredients", "infographic", "how_to_process", "social_proof"];
+  const CATEGORY_LABELS: Record<ImageCategory, string> = {
+    product_photo: "Product Photo",
+    lifestyle: "Lifestyle",
+    ingredients: "Ingredients",
+    infographic: "Infographic",
+    how_to_process: "How To / Process",
+    social_proof: "Social Proof",
+  };
 
   // Apply generated copy when fetcher returns (useEffect, not during render)
   useEffect(() => {
@@ -214,17 +228,47 @@ export default function Index() {
     }
   }, [copyFetcher.data]);
 
-  // Apply generated image when fetcher returns (useEffect, not during render)
+  // Batch image generation: submit request when genStep changes
   useEffect(() => {
-    if (imageFetcher.data?.success && imageFetcher.data?.image) {
+    if (!isGeneratingAll || genStep < 0 || genStep >= ALL_CATEGORIES.length) return;
+    if (imageFetcher.state !== "idle") return;
+
+    const category = ALL_CATEGORIES[genStep];
+    const input = {
+      productImageBase64,
+      productImageMimeType,
+      category,
+      productName: config.product.title || copyInput.productName || "Product",
+      productDescription: config.product.description || copyInput.productDescription || "",
+      language: copyInput.language || "it",
+    };
+
+    const formData = new FormData();
+    formData.set("input", JSON.stringify(input));
+    imageFetcher.submit(formData, { method: "post", action: "/app/api/generate-image" });
+  }, [genStep, isGeneratingAll, imageFetcher.state]);
+
+  // Process response and advance to next category
+  useEffect(() => {
+    if (!isGeneratingAll || genStep < 0) return;
+    if (imageFetcher.state !== "idle" || !imageFetcher.data) return;
+    if (lastProcessedGenStep.current === genStep) return;
+    lastProcessedGenStep.current = genStep;
+
+    if (imageFetcher.data.success && imageFetcher.data.image) {
       const img = imageFetcher.data.image;
-      setGeneratedImages((prev) => {
-        const alreadyAdded = prev.some((g) => g.category === img.category && g.base64 === img.imageBase64);
-        if (alreadyAdded) return prev;
-        return [...prev, { base64: img.imageBase64, mimeType: img.mimeType, category: img.category }];
-      });
+      setGeneratedImages((prev) => [...prev, { base64: img.imageBase64, mimeType: img.mimeType, category: img.category }]);
     }
-  }, [imageFetcher.data]);
+
+    const next = genStep + 1;
+    if (next < ALL_CATEGORIES.length) {
+      setTimeout(() => setGenStep(next), 1200);
+    } else {
+      setIsGeneratingAll(false);
+      setGenStep(-1);
+      lastProcessedGenStep.current = -1;
+    }
+  }, [imageFetcher.state, imageFetcher.data, isGeneratingAll, genStep]);
 
   // ─── Updaters ───
   const updateField = useCallback(
@@ -362,29 +406,24 @@ export default function Index() {
     reader.readAsDataURL(file);
   }, []);
 
-  const handleGenerateImage = useCallback(() => {
-    if (!productImageBase64 || !selectedCategory) return;
-
-    const input = {
-      productImageBase64,
-      productImageMimeType,
-      category: selectedCategory,
-      productName: config.product.title || copyInput.productName || "Product",
-      productDescription: config.product.description || copyInput.productDescription || "",
-      language: copyInput.language || "it",
-    };
-
-    const formData = new FormData();
-    formData.set("input", JSON.stringify(input));
-    imageFetcher.submit(formData, { method: "post", action: "/app/api/generate-image" });
-  }, [productImageBase64, productImageMimeType, selectedCategory, config.product.title, config.product.description, copyInput, imageFetcher]);
+  const handleGenerateAllImages = useCallback(() => {
+    if (!productImageBase64) return;
+    setGeneratedImages([]);
+    lastProcessedGenStep.current = -1;
+    setIsGeneratingAll(true);
+    setGenStep(0);
+  }, [productImageBase64]);
 
   // ─── Submit ───
   const handleGenerate = useCallback(() => {
     const formData = new FormData();
     formData.set("config", JSON.stringify(config));
+    // Pass generated images for Shopify Files upload
+    if (generatedImages.length > 0) {
+      formData.set("images", JSON.stringify(generatedImages));
+    }
     submit(formData, { method: "post" });
-  }, [config, submit]);
+  }, [config, generatedImages, submit]);
 
   // ─── Render Steps ───
   const renderStep1 = () => (
@@ -677,108 +716,90 @@ export default function Index() {
       <Divider />
 
       <Text variant="headingMd" as="h3">AI Image Generation (Optional)</Text>
-      <Banner tone="warning">
+      <Banner tone="info">
         <p>
-          This section is optional. You can skip it and proceed to the next step.
-          Image generation uses AI and may not always work reliably.
+          Upload a product photo and generate 6 images for your landing page.
+          Each image is optimized for a specific section (hero, lifestyle, ingredients, infographic, how-to, social proof).
         </p>
       </Banner>
 
-      {!showImageGen ? (
-        <Button onClick={() => setShowImageGen(true)}>
-          Show Image Generation
-        </Button>
-      ) : (
+      <Card>
+        <BlockStack gap="400">
+          <Text variant="headingSm" as="h4">1. Upload product photo</Text>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileUpload}
+            style={{ marginBottom: "8px" }}
+          />
+          {productImagePreview && (
+            <div style={{ maxWidth: "200px" }}>
+              <img
+                src={productImagePreview}
+                alt="Product preview"
+                style={{ width: "100%", borderRadius: "8px", border: "1px solid #ddd" }}
+              />
+            </div>
+          )}
+
+          <Text variant="headingSm" as="h4">2. Generate all images</Text>
+          <InlineStack gap="300" blockAlign="center">
+            <Button
+              variant="primary"
+              loading={isGeneratingAll}
+              onClick={handleGenerateAllImages}
+              disabled={!productImageBase64 || isGeneratingAll}
+            >
+              Generate All 6 Images
+            </Button>
+          </InlineStack>
+
+          {isGeneratingAll && genStep >= 0 && (
+            <BlockStack gap="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Spinner size="small" />
+                <Text as="span" variant="bodySm">
+                  Generating {CATEGORY_LABELS[ALL_CATEGORIES[genStep]]}... ({genStep + 1}/6)
+                </Text>
+              </InlineStack>
+              <ProgressBar progress={Math.round(((genStep) / 6) * 100)} size="small" />
+            </BlockStack>
+          )}
+
+          {imageFetcher.data?.error && !isGeneratingAll && (
+            <Banner tone="warning">
+              <p>Some images may have failed: {imageFetcher.data.error}</p>
+            </Banner>
+          )}
+        </BlockStack>
+      </Card>
+
+      {generatedImages.length > 0 && (
         <>
+          <Text variant="headingMd" as="h3">Generated Images ({generatedImages.length}/6)</Text>
           <Card>
             <BlockStack gap="400">
-              <Text variant="headingSm" as="h4">1. Upload product photo</Text>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileUpload}
-                style={{ marginBottom: "8px" }}
-              />
-              {productImagePreview && (
-                <div style={{ maxWidth: "200px" }}>
-                  <img
-                    src={productImagePreview}
-                    alt="Product preview"
-                    style={{ width: "100%", borderRadius: "8px", border: "1px solid #ddd" }}
-                  />
-                </div>
-              )}
-
-              <Text variant="headingSm" as="h4">2. Select category</Text>
-              <Select
-                label="Image Category"
-                options={IMAGE_CATEGORIES.map((c) => ({ label: c.label, value: c.value }))}
-                value={selectedCategory}
-                onChange={(v) => setSelectedCategory(v as ImageCategory)}
-                helpText={
-                  selectedCategory === "product_photo" ? "Clean studio packshot, no text, no graphics" :
-                  selectedCategory === "lifestyle" ? "Product in realistic environment with natural lighting" :
-                  selectedCategory === "ingredients" ? "Key ingredients displayed around the product" :
-                  selectedCategory === "infographic" ? "4-6 informational callouts around the product" :
-                  selectedCategory === "how_to_process" ? "3-5 step visual guide for using the product" :
-                  selectedCategory === "social_proof" ? "Customer review/testimonial card layout" : ""
-                }
-              />
-
-              <InlineStack gap="300" blockAlign="center">
-                <Button
-                  variant="primary"
-                  loading={isImageGenerating}
-                  onClick={handleGenerateImage}
-                  disabled={!productImageBase64}
-                >
-                  Generate Image
-                </Button>
-                {isImageGenerating && (
-                  <InlineStack gap="200" blockAlign="center">
-                    <Spinner size="small" />
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      Generating image... this may take 15-30 seconds
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px" }}>
+                {generatedImages.map((img, i) => (
+                  <div key={i} style={{ textAlign: "center" }}>
+                    <img
+                      src={`data:${img.mimeType};base64,${img.base64}`}
+                      alt={`Generated ${img.category}`}
+                      style={{ width: "100%", borderRadius: "8px", border: "1px solid #ddd" }}
+                    />
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {CATEGORY_LABELS[img.category] || img.category}
                     </Text>
-                  </InlineStack>
-                )}
-              </InlineStack>
-
-              {imageFetcher.data?.error && (
-                <Banner tone="critical">
-                  <p>Error: {imageFetcher.data.error}</p>
+                  </div>
+                ))}
+              </div>
+              {!isGeneratingAll && generatedImages.length === 6 && (
+                <Banner tone="success">
+                  <p>All 6 images generated! They will be automatically placed in your landing page sections.</p>
                 </Banner>
               )}
             </BlockStack>
           </Card>
-
-          {generatedImages.length > 0 && (
-            <>
-              <Text variant="headingMd" as="h3">Generated Images ({generatedImages.length})</Text>
-              <Card>
-                <BlockStack gap="400">
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px" }}>
-                    {generatedImages.map((img, i) => (
-                      <div key={i} style={{ textAlign: "center" }}>
-                        <img
-                          src={`data:${img.mimeType};base64,${img.base64}`}
-                          alt={`Generated ${img.category}`}
-                          style={{ width: "100%", borderRadius: "8px", border: "1px solid #ddd" }}
-                        />
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {IMAGE_CATEGORIES.find((c) => c.value === img.category)?.label || img.category}
-                        </Text>
-                      </div>
-                    ))}
-                  </div>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Generated images will be available for use in theme sections.
-                    You can generate more images by selecting different categories above.
-                  </Text>
-                </BlockStack>
-              </Card>
-            </>
-          )}
         </>
       )}
     </BlockStack>
