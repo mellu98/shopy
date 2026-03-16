@@ -3,8 +3,5 @@ import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  if (url.searchParams.get("shop")) {
-    throw redirect(`/app${url.search}`);
-  }
-  throw redirect("/app");
+  throw redirect(`/app${url.search}`);
 };
