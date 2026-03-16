@@ -813,7 +813,96 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
   };
   order.push(collectionId);
 
-  // ── 4. WHY CHOOSE US (image-with-text) ──
+  // ── 4. IMAGE WITH BENEFITS (features from product config) ──
+  if (config.product.features.length > 0) {
+    const benefitsSectionId = blockId("image_with_benefits");
+    const benefitBlocks: Record<string, any> = {};
+    const benefitBlockOrder: string[] = [];
+
+    for (const feature of config.product.features) {
+      const bId = blockId("benefit");
+      benefitBlocks[bId] = {
+        type: "benefit",
+        settings: {
+          icon: feature.icon,
+          title: feature.title,
+          description: feature.description,
+        },
+      };
+      benefitBlockOrder.push(bId);
+    }
+
+    sections[benefitsSectionId] = {
+      type: "pp-image-with-benefits-v1-0-0",
+      blocks: benefitBlocks,
+      block_order: benefitBlockOrder,
+      settings: {
+        heading: `Perché scegliere ${config.brandName}`,
+        subtitle: "",
+        image: config.product.lifestyleImages?.[0] || "",
+        image_rounded_type: "circle",
+        desktop_content_alignment: "center",
+        mobile_content_alignment: "center",
+        section_background: "",
+        padding_top: 30,
+        padding_bottom: 30,
+        padding_top_mobile: 30,
+        padding_bottom_mobile: 30,
+        margin_top: 30,
+        margin_bottom: 30,
+        margin_top_mobile: 30,
+        margin_bottom_mobile: 30,
+      },
+    };
+    order.push(benefitsSectionId);
+  }
+
+  // ── 5. CUSTOMER REVIEWS (review grid) ──
+  if (config.reviews.length > 0) {
+    const reviewGridId = blockId("review_grid");
+    const reviewBlocks: Record<string, any> = {};
+    const reviewBlockOrder: string[] = [];
+
+    for (const review of config.reviews) {
+      const rId = blockId("review");
+      reviewBlocks[rId] = {
+        type: "review",
+        settings: {
+          image: review.imageUrl || "",
+          name: review.name,
+          verified_text: "Acquirente Verificato",
+          rating: review.rating,
+          review_text: review.text,
+        },
+      };
+      reviewBlockOrder.push(rId);
+    }
+
+    sections[reviewGridId] = {
+      type: "pp-review-grid-v1-0-0",
+      blocks: reviewBlocks,
+      block_order: reviewBlockOrder,
+      settings: {
+        rating: 5,
+        heading: "Cosa dicono i nostri clienti",
+        subheading: `${config.reviewRating} stelle su 5 — ${config.reviewCount} recensioni`,
+        desktop_content_alignment: "center",
+        mobile_content_alignment: "center",
+        section_background: "",
+        padding_top: 30,
+        padding_bottom: 30,
+        padding_top_mobile: 30,
+        padding_bottom_mobile: 30,
+        margin_top: 30,
+        margin_bottom: 30,
+        margin_top_mobile: 30,
+        margin_bottom_mobile: 30,
+      },
+    };
+    order.push(reviewGridId);
+  }
+
+  // ── 6. WHY CHOOSE US (image-with-text) ──
   const whyId = blockId("image_with_text");
   const whyHeadingId = blockId("heading");
   const whyTextId = blockId("text");
@@ -856,6 +945,85 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
     },
   };
   order.push(whyId);
+
+  // ── 7. FAQs (if available) ──
+  if (config.faqs.length > 0 && config.faqs[0].question) {
+    const faqSectionId = blockId("faqs");
+    const faqBlocks: Record<string, any> = {};
+    const faqBlockOrder: string[] = [];
+
+    for (const faq of config.faqs) {
+      if (!faq.question) continue;
+      const fId = blockId("faq");
+      faqBlocks[fId] = {
+        type: "faq_item",
+        settings: {
+          question: faq.question,
+          answer: faq.answer,
+        },
+      };
+      faqBlockOrder.push(fId);
+    }
+
+    sections[faqSectionId] = {
+      type: "pp-faqs-v1-0-0",
+      blocks: faqBlocks,
+      block_order: faqBlockOrder,
+      settings: {
+        heading: "Domande frequenti",
+        description: "",
+        desktop_content_alignment: "center",
+        mobile_content_alignment: "center",
+        button_behaviour: "scroll_to_top",
+        button_label: "",
+        button_link: "",
+        faqitem_background: "",
+        section_background: "",
+        padding_top: 30,
+        padding_bottom: 30,
+        padding_top_mobile: 30,
+        padding_bottom_mobile: 30,
+        margin_top: 30,
+        margin_bottom: 30,
+        margin_top_mobile: 30,
+        margin_bottom_mobile: 30,
+      },
+    };
+    order.push(faqSectionId);
+  }
+
+  // ── 8. NEWSLETTER SIGNUP ──
+  const newsletterId = blockId("newsletter");
+  const nlHeadingId = blockId("heading");
+  const nlParaId = blockId("paragraph");
+  const nlEmailId = blockId("email_form");
+  sections[newsletterId] = {
+    type: "newsletter",
+    blocks: {
+      [nlHeadingId]: {
+        type: "heading",
+        settings: { heading: "Iscriviti alla newsletter", heading_size: "h1" },
+      },
+      [nlParaId]: {
+        type: "paragraph",
+        settings: {
+          text: "Ricevi offerte esclusive e aggiornamenti direttamente nella tua casella di posta.",
+        },
+      },
+      [nlEmailId]: {
+        type: "email_form",
+        settings: {},
+      },
+    },
+    block_order: [nlHeadingId, nlParaId, nlEmailId],
+    settings: {
+      color_scheme: "background-1",
+      full_width: true,
+      padding_top: 40,
+      padding_bottom: 52,
+    },
+  };
+  order.push(newsletterId);
 
   return { sections, order };
 }

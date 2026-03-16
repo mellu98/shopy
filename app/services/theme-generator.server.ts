@@ -129,10 +129,9 @@ function assembleFinalFiles(
     fileMap.set(file.key, file);
   }
 
-  // Replace/add generated product template
-  // Use a dedicated template name so it doesn't conflict with default
-  fileMap.set("templates/product.landing.json", {
-    key: "templates/product.landing.json",
+  // Replace the default product template with our generated landing page
+  fileMap.set("templates/product.json", {
+    key: "templates/product.json",
     value: JSON.stringify(productTemplate, null, 2),
   });
 
@@ -161,7 +160,9 @@ function assembleFinalFiles(
     "templates/product.pagepilot-1772317636218-467613.json",
     "templates/product.quantity-breaks.json",
     "templates/product.static-ads.json",
+    "templates/product.landing.json",
     "templates/index.context.it.json",
+    "templates/blog.context.b2b.json",
   ];
   for (const key of templatesToRemove) {
     fileMap.delete(key);

@@ -63,6 +63,18 @@ export async function uploadAsset(
 }
 
 /**
+ * Files that Shopify's Asset API rejects (422).
+ * Section groups and context-specific overrides must be excluded.
+ */
+function shouldSkipFile(key: string): boolean {
+  // Section group files: sections/*-group.json, sections/*-group.context.*.json
+  if (key.startsWith("sections/") && key.includes("-group")) return true;
+  // Context-specific template/section overrides: *.context.*.json
+  if (key.includes(".context.") && key.endsWith(".json")) return true;
+  return false;
+}
+
+/**
  * Upload all theme files with rate limiting.
  * Shopify allows ~2 requests/second for asset uploads.
  * Upload failures are non-fatal: failed files are logged and skipped
@@ -77,6 +89,19 @@ export async function uploadAllAssets(
   const BATCH_SIZE = 2;
   const DELAY_MS = 600;
   const skipped: string[] = [];
+
+  // Filter out files that Shopify's Asset API doesn't accept
+  const filtered = files.filter((f) => {
+    if (shouldSkipFile(f.key)) {
+      skipped.push(f.key);
+      return false;
+    }
+    return true;
+  });
+  if (skipped.length > 0) {
+    console.log(`[ThemeUpload] Pre-filtered ${skipped.length} unsupported files`);
+  }
+  files = filtered;
 
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE);
