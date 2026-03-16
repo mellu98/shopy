@@ -15,6 +15,11 @@ export default async function handleRequest(
   remixContext: EntryContext
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
+  // Ensure the app can be embedded in Shopify admin iframe
+  responseHeaders.set(
+    "Content-Security-Policy",
+    "frame-ancestors https://*.myshopify.com https://admin.shopify.com;"
+  );
   const userAgent = request.headers.get("user-agent") || "";
   const callbackName = isbot(userAgent) ? "onAllReady" : "onShellReady";
 
