@@ -196,6 +196,7 @@ export async function generateImage(
       prompt,
       n: 1,
       size: "1024x1024",
+      quality: "standard",
     }),
   });
 
@@ -215,7 +216,7 @@ export async function generateImage(
     );
   }
 
-  // gpt-image-1.5 returns b64_json directly or a URL
+  // Handle base64 response
   if (result.b64_json) {
     console.log(`[ImageGen] Generated ${input.category} image (base64)`);
     return {
@@ -225,8 +226,8 @@ export async function generateImage(
     };
   }
 
+  // Handle URL response — download and convert to base64
   if (result.url) {
-    // Download the image and convert to base64
     console.log(`[ImageGen] Generated ${input.category} image (URL), downloading...`);
     const imgResponse = await fetch(result.url);
     const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
