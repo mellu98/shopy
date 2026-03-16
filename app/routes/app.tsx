@@ -5,32 +5,10 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import { authenticate } from "../shopify.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const url = new URL(request.url);
-  console.log("[AppLoader] Request URL:", url.pathname + url.search.slice(0, 100));
-  console.log("[AppLoader] SHOPIFY_API_KEY set:", !!process.env.SHOPIFY_API_KEY, "length:", process.env.SHOPIFY_API_KEY?.length);
-  console.log("[AppLoader] SHOPIFY_API_SECRET set:", !!process.env.SHOPIFY_API_SECRET, "length:", process.env.SHOPIFY_API_SECRET?.length);
-  console.log("[AppLoader] SHOPIFY_APP_URL:", process.env.SHOPIFY_APP_URL);
-  try {
-    await authenticate.admin(request);
-  } catch (err) {
-    if (err instanceof Response) {
-      const headers: Record<string, string> = {};
-      err.headers.forEach((v, k) => { headers[k] = v; });
-      console.log("[AppLoader] Auth threw Response:", err.status);
-      console.log("[AppLoader] Response headers:", JSON.stringify(headers));
-      const body = await err.clone().text();
-      console.log("[AppLoader] Response body length:", body.length);
-      console.log("[AppLoader] Response body preview:", body.slice(0, 500));
-    } else {
-      console.error("[AppLoader] Auth error:", err);
-    }
-    throw err;
-  }
   return json({ apiKey: process.env.SHOPIFY_API_KEY || "" });
 };
 

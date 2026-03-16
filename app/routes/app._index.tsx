@@ -31,21 +31,32 @@ import type { MerchantConfig, BenefitItem, FaqItem, ReviewItem, FeatureItem, Com
 import { IMAGE_CATEGORIES } from "../types";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
   const defaultConfig = getDefaultConfig();
 
-  // Load saved wizard state if it exists
-  const savedState = await db.wizardState.findUnique({
-    where: { shop: session.shop },
-  });
+  try {
+    const { session } = await authenticate.admin(request);
 
-  if (savedState) {
-    return json({
-      defaultConfig: JSON.parse(savedState.config) as MerchantConfig,
-      savedStep: savedState.step,
-      savedCopyInput: savedState.copyInput ? JSON.parse(savedState.copyInput) : null,
-      savedCopyGenerated: savedState.copyGenerated,
+    // Load saved wizard state if it exists
+    const savedState = await db.wizardState.findUnique({
+      where: { shop: session.shop },
     });
+
+    if (savedState) {
+      return json({
+        defaultConfig: JSON.parse(savedState.config) as MerchantConfig,
+        savedStep: savedState.step,
+        savedCopyInput: savedState.copyInput ? JSON.parse(savedState.copyInput) : null,
+        savedCopyGenerated: savedState.copyGenerated,
+      });
+    }
+  } catch (err) {
+    // Auth may fail on initial embedded load before App Bridge provides token
+    // Return defaults and let App Bridge handle auth for subsequent requests
+    if (err instanceof Response) {
+      console.log("[AppIndex] Auth not ready, returning defaults");
+    } else {
+      throw err;
+    }
   }
 
   return json({
