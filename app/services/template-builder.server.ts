@@ -928,7 +928,6 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
     },
     block_order: [whyHeadingId, whyTextId],
     settings: {
-      image: "",
       height: "adapt",
       desktop_image_width: "medium",
       layout: "image_first",
