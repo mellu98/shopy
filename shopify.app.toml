@@ -1,0 +1,25 @@
+name = "Theme Builder"
+client_id = "YOUR_CLIENT_ID"
+application_url = "https://your-app-url.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_themes,write_themes,read_products,read_content"
+
+[auth]
+redirect_urls = [
+  "https://your-app-url.trycloudflare.com/auth/callback",
+  "https://your-app-url.trycloudflare.com/auth/shopify/callback",
+  "https://your-app-url.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-07"
+
+[webhooks.privacy_compliance]
+customer_data_request_url = "/webhooks/gdpr/data-request"
+customer_deletion_url = "/webhooks/gdpr/customer-deletion"
+shop_deletion_url = "/webhooks/gdpr/shop-deletion"
+
+[pos]
+embedded = false
