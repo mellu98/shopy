@@ -215,7 +215,7 @@ export function buildProductTemplate(config: MerchantConfig): object {
       settings: {
         rating: featuredReview.rating,
         stars_color: "#facc15",
-        image: featuredReview.imageUrl || "",
+        ...(featuredReview.imageUrl ? { image: featuredReview.imageUrl } : {}),
         review: featuredReview.text,
         name: featuredReview.name,
       },
@@ -359,7 +359,7 @@ export function buildProductTemplate(config: MerchantConfig): object {
       },
       block_order: [headingBlockId, textBlockId, buttonBlockId],
       settings: {
-        image: section.imageUrl || "",
+        ...(section.imageUrl ? { image: section.imageUrl } : {}),
         image_alt: config.product.title,
         layout: section.layout,
         desktop_content_position: "center",
@@ -405,7 +405,7 @@ export function buildProductTemplate(config: MerchantConfig): object {
       settings: {
         heading: `Perché scegliere ${config.product.title}`,
         subtitle: config.product.description,
-        image: config.product.lifestyleImages?.[0] || "",
+        ...(config.product.lifestyleImages?.[0] ? { image: config.product.lifestyleImages[0] } : {}),
         image_rounded_type: "circle",
         desktop_content_alignment: "center",
         mobile_content_alignment: "center",
@@ -510,7 +510,7 @@ export function buildProductTemplate(config: MerchantConfig): object {
       },
       block_order: [headBlockId, percItemsId, percBtnId],
       settings: {
-        image: config.product.lifestyleImages?.[1] || "",
+        ...(config.product.lifestyleImages?.[1] ? { image: config.product.lifestyleImages[1] } : {}),
         layout: "image_first",
         desktop_content_alignment: "left",
         mobile_content_alignment: "center",
@@ -629,7 +629,7 @@ export function buildProductTemplate(config: MerchantConfig): object {
       reviewBlocks[rId] = {
         type: "review",
         settings: {
-          image: review.imageUrl || "",
+          ...(review.imageUrl ? { image: review.imageUrl } : {}),
           name: review.name,
           verified_text: "Acquirente Verificato",
           rating: review.rating,
@@ -702,8 +702,7 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
       [slideId]: {
         type: "slide",
         settings: {
-          image: config.homepage.heroImageUrl || "",
-          image_mob: config.homepage.heroImageUrl || "",
+          ...(config.homepage.heroImageUrl ? { image: config.homepage.heroImageUrl, image_mob: config.homepage.heroImageUrl } : {}),
           caption: "",
           block_cap_size: 14,
           cap_color: "#212121",
@@ -839,7 +838,7 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
       settings: {
         heading: `Perché scegliere ${config.brandName}`,
         subtitle: "",
-        image: config.product.lifestyleImages?.[0] || "",
+        ...(config.product.lifestyleImages?.[0] ? { image: config.product.lifestyleImages[0] } : {}),
         image_rounded_type: "circle",
         desktop_content_alignment: "center",
         mobile_content_alignment: "center",
@@ -868,7 +867,7 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
       reviewBlocks[rId] = {
         type: "review",
         settings: {
-          image: review.imageUrl || "",
+          ...(review.imageUrl ? { image: review.imageUrl } : {}),
           name: review.name,
           verified_text: "Acquirente Verificato",
           rating: review.rating,
@@ -991,39 +990,6 @@ export function buildHomepageTemplate(config: MerchantConfig): object {
     };
     order.push(faqSectionId);
   }
-
-  // ── 8. NEWSLETTER SIGNUP ──
-  const newsletterId = blockId("newsletter");
-  const nlHeadingId = blockId("heading");
-  const nlParaId = blockId("paragraph");
-  const nlEmailId = blockId("email_form");
-  sections[newsletterId] = {
-    type: "newsletter",
-    blocks: {
-      [nlHeadingId]: {
-        type: "heading",
-        settings: { heading: "Iscriviti alla newsletter", heading_size: "h1" },
-      },
-      [nlParaId]: {
-        type: "paragraph",
-        settings: {
-          text: "Ricevi offerte esclusive e aggiornamenti direttamente nella tua casella di posta.",
-        },
-      },
-      [nlEmailId]: {
-        type: "email_form",
-        settings: {},
-      },
-    },
-    block_order: [nlHeadingId, nlParaId, nlEmailId],
-    settings: {
-      color_scheme: "background-1",
-      full_width: true,
-      padding_top: 40,
-      padding_bottom: 52,
-    },
-  };
-  order.push(newsletterId);
 
   return { sections, order };
 }

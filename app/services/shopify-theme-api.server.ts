@@ -56,10 +56,26 @@ export async function uploadAsset(
     assetData.value = file.value;
   }
 
-  await admin.rest.put({
-    path: `themes/${themeId}/assets`,
-    data: { asset: assetData },
-  });
+  try {
+    const response = await admin.rest.put({
+      path: `themes/${themeId}/assets`,
+      data: { asset: assetData },
+    });
+    // Log response for template files to debug 422 errors
+    if (file.key.startsWith("templates/") && response.status >= 400) {
+      const body = await response.json().catch(() => ({}));
+      console.error(`[ThemeUpload] ${file.key} response ${response.status}:`, JSON.stringify(body));
+    }
+  } catch (err: any) {
+    // Try to extract detailed error from Shopify response
+    if (err?.response) {
+      try {
+        const errBody = await err.response.json().catch(() => null);
+        console.error(`[ThemeUpload] ${file.key} error details:`, JSON.stringify(errBody));
+      } catch {}
+    }
+    throw err;
+  }
 }
 
 /**
@@ -101,6 +117,13 @@ export async function uploadAllAssets(
   if (skipped.length > 0) {
     console.log(`[ThemeUpload] Pre-filtered ${skipped.length} unsupported files`);
   }
+  // Sort: sections/snippets/layout BEFORE templates/config (Shopify validates templates against sections)
+  const priority: Record<string, number> = { layout: 0, config: 1, locales: 2, assets: 3, snippets: 4, sections: 5, templates: 6 };
+  filtered.sort((a, b) => {
+    const dirA = a.key.split("/")[0];
+    const dirB = b.key.split("/")[0];
+    return (priority[dirA] ?? 3) - (priority[dirB] ?? 3);
+  });
   files = filtered;
 
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
