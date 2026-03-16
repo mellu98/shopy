@@ -10,7 +10,7 @@ import type { ThemeFile } from "~/types";
 
 const MASTER_THEME_PATH =
   process.env.MASTER_THEME_PATH ||
-  join(process.cwd(), "..", ""); // Parent dir = the theme root
+  join(process.cwd(), "master-theme"); // Bundled master theme files
 
 // Directories that make up a complete Shopify theme
 const THEME_DIRS = [
