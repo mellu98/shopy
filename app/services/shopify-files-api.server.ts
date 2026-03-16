@@ -73,13 +73,15 @@ async function uploadSingleImage(
     );
   } catch (gqlErr: any) {
     // admin.graphql() throws a Response object on HTTP errors (e.g., missing scope)
-    let errDetail = String(gqlErr);
+    const status = gqlErr?.status || 'unknown';
+    const statusText = gqlErr?.statusText || '';
+    let body = '';
     if (gqlErr && typeof gqlErr.text === "function") {
-      try { errDetail = await gqlErr.text(); } catch {}
-    } else if (gqlErr?.message) {
-      errDetail = gqlErr.message;
+      try { body = await gqlErr.text(); } catch {}
     }
-    throw new Error(`GraphQL stagedUploadsCreate failed: ${errDetail.substring(0, 500)}`);
+    const headers = gqlErr?.headers ? Object.fromEntries?.(gqlErr.headers) : {};
+    console.error(`[ShopifyFiles] GraphQL error: status=${status} ${statusText}, body=${body || '(empty)'}, headers=${JSON.stringify(headers).substring(0, 300)}`);
+    throw new Error(`GraphQL stagedUploadsCreate failed (HTTP ${status}): ${body || statusText || 'empty response — likely missing write_files scope'}`);
   }
 
   const stagedData = await stagedResponse.json();
