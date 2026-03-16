@@ -111,20 +111,6 @@ export default function Index() {
   const saveFetcher = useFetcher();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced auto-save: saves 1s after last change
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      const formData = new FormData();
-      formData.set("step", String(step));
-      formData.set("config", JSON.stringify(config));
-      formData.set("copyInput", JSON.stringify(copyInput));
-      formData.set("copyGenerated", String(copyGenerated));
-      saveFetcher.submit(formData, { method: "post", action: "/app/api/wizard-state" });
-    }, 1000);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [config, step, copyInput, copyGenerated]);
-
   // ─── Copy Generation State ───
   const copyFetcher = useFetcher<{ success?: boolean; copy?: GeneratedCopy; error?: string }>();
   const isCopyGenerating = copyFetcher.state === "submitting" || copyFetcher.state === "loading";
@@ -141,6 +127,20 @@ export default function Index() {
     }
   );
   const [copyGenerated, setCopyGenerated] = useState(savedCopyGenerated || false);
+
+  // Debounced auto-save: saves 1s after last change
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const formData = new FormData();
+      formData.set("step", String(step));
+      formData.set("config", JSON.stringify(config));
+      formData.set("copyInput", JSON.stringify(copyInput));
+      formData.set("copyGenerated", String(copyGenerated));
+      saveFetcher.submit(formData, { method: "post", action: "/app/api/wizard-state" });
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [config, step, copyInput, copyGenerated]);
 
   // ─── Image Generation State ───
   const imageFetcher = useFetcher<{ success?: boolean; image?: GeneratedImage; error?: string }>();
