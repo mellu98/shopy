@@ -2,27 +2,25 @@ import type { ImageCategory, ImageGenerationInput, GeneratedImage } from "~/type
 
 /**
  * AI Image Generator — Ecommerce Visual Art Director
- * Uses Gemini 3.1 Flash (via OpenRouter) for image generation.
+ * Uses OpenAI gpt-image-1 via /v1/images/edits for image generation.
+ * Sends the product photo as reference + category-specific prompt.
  *
  * Flow:
  * 1. Merchant uploads product image + selects category
  * 2. We build a detailed prompt based on category rules
- * 3. Send product image + prompt to Gemini Flash (image generation model)
- * 4. Receive generated image back
+ * 3. Send product image + prompt to OpenAI Images API
+ * 4. Receive generated image back as base64
  */
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/edits";
+const OPENAI_IMAGES_GEN_URL = "https://api.openai.com/v1/images/generations";
 
-function getApiKey(): string {
-  const key = process.env.OPENROUTER_API_KEY;
+function getOpenAIApiKey(): string {
+  const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    throw new Error("OPENROUTER_API_KEY is not set in environment variables");
+    throw new Error("OPENAI_API_KEY is not set in environment variables");
   }
   return key;
-}
-
-function getImageModel(): string {
-  return process.env.OPENROUTER_IMAGE_MODEL || "google/gemini-3.1-flash-image-preview";
 }
 
 // ─── Category-Specific Prompt Rules ─────────────────────────────
@@ -175,154 +173,60 @@ export function categoryRequiresText(category: ImageCategory): boolean {
 }
 
 /**
- * Generate an e-commerce image using Gemini Flash via OpenRouter.
+ * Generate an e-commerce image using OpenAI gpt-image-1.
+ * Uses /v1/images/edits with the product photo as reference.
  */
 export async function generateImage(
   input: ImageGenerationInput
 ): Promise<GeneratedImage> {
-  const apiKey = getApiKey();
-  const model = getImageModel();
+  const apiKey = getOpenAIApiKey();
   const prompt = buildImagePrompt(input);
 
-  // Build the multimodal message with product image + text prompt
-  const messages = [
-    {
-      role: "user" as const,
-      content: [
-        {
-          type: "text" as const,
-          text: prompt,
-        },
-        {
-          type: "image_url" as const,
-          image_url: {
-            url: `data:${input.productImageMimeType};base64,${input.productImageBase64}`,
-          },
-        },
-      ],
-    },
-  ];
+  // Convert base64 to a File/Blob for multipart upload
+  const imageBuffer = Buffer.from(input.productImageBase64, "base64");
+  const imageBlob = new Blob([imageBuffer], { type: input.productImageMimeType });
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  // Use the edits endpoint with the product image as reference
+  const formData = new FormData();
+  formData.append("image", imageBlob, `product.${input.productImageMimeType === "image/png" ? "png" : "jpg"}`);
+  formData.append("prompt", prompt);
+  formData.append("model", "gpt-image-1");
+  formData.append("n", "1");
+  formData.append("size", "1024x1024");
+  formData.append("response_format", "b64_json");
+
+  console.log(`[ImageGen] Generating ${input.category} via OpenAI gpt-image-1...`);
+
+  const response = await fetch(OPENAI_IMAGES_URL, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://theme-builder.shopify.app",
-      "X-Title": "Shopify Theme Builder",
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: 4096,
-      // Required for Gemini image generation
-      modalities: ["text", "image"],
-    }),
+    body: formData,
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(
-      `OpenRouter Image API error (${response.status}): ${errorBody}`
+      `OpenAI Image API error (${response.status}): ${errorBody.substring(0, 500)}`
     );
   }
 
   const data = await response.json();
+  const imageData = data.data?.[0]?.b64_json;
 
-  // Extract image from response — handle multiple possible formats
-  const choice = data.choices?.[0]?.message;
-
-  // Debug: log full response
-  console.log("[ImageGen] Full API response:", JSON.stringify(data).substring(0, 3000));
-
-  if (!choice) {
-    throw new Error("No response from image generation model. Full response: " + JSON.stringify(data).substring(0, 500));
-  }
-
-  // Handle null/empty content — model refused or failed to generate
-  if (choice.content === null || choice.content === undefined) {
-    const finishReason = data.choices?.[0]?.finish_reason || "unknown";
+  if (!imageData) {
     throw new Error(
-      `Image model returned empty content (finish_reason: ${finishReason}). ` +
-      `The model may not support this request format. ` +
-      `Full response: ${JSON.stringify(data).substring(0, 500)}`
+      `No image in OpenAI response. Response: ${JSON.stringify(data).substring(0, 500)}`
     );
   }
 
-  // Helper to extract image from any content structure
-  function extractImageFromParts(parts: any[]): GeneratedImage | null {
-    for (const part of parts) {
-      // OpenRouter multimodal: { type: "image_url", image_url: { url: "data:..." } }
-      if (part.type === "image_url" && part.image_url?.url) {
-        const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
-        if (match) {
-          return { imageBase64: match[2], mimeType: match[1], category: input.category };
-        }
-      }
-      // Gemini inline_data: { inline_data: { data: "...", mime_type: "..." } }
-      if (part.inline_data?.data) {
-        return {
-          imageBase64: part.inline_data.data,
-          mimeType: part.inline_data.mime_type || "image/png",
-          category: input.category,
-        };
-      }
-      // Gemini native parts format: { data: "...", mimeType: "..." }
-      if (part.data && part.mimeType?.startsWith("image/")) {
-        return { imageBase64: part.data, mimeType: part.mimeType, category: input.category };
-      }
-    }
-    return null;
-  }
-
-  // Format 1: content is an array of parts
-  if (Array.isArray(choice.content)) {
-    const result = extractImageFromParts(choice.content);
-    if (result) return result;
-  }
-
-  // Format 2: content is an object (not array) — might have .parts or other structure
-  if (choice.content && typeof choice.content === "object" && !Array.isArray(choice.content)) {
-    // Gemini native: { parts: [...] }
-    if (Array.isArray(choice.content.parts)) {
-      const result = extractImageFromParts(choice.content.parts);
-      if (result) return result;
-    }
-    // Direct inline_data on content object
-    if (choice.content.inline_data?.data) {
-      return {
-        imageBase64: choice.content.inline_data.data,
-        mimeType: choice.content.inline_data.mime_type || "image/png",
-        category: input.category,
-      };
-    }
-    // Try iterating all values looking for image data
-    for (const value of Object.values(choice.content)) {
-      if (Array.isArray(value)) {
-        const result = extractImageFromParts(value);
-        if (result) return result;
-      }
-    }
-  }
-
-  // Format 3: content is a string — might contain base64 or a URL
-  if (typeof choice.content === "string") {
-    const dataUrlMatch = choice.content.match(/data:image\/([^;]+);base64,([A-Za-z0-9+/=]+)/);
-    if (dataUrlMatch) {
-      return {
-        imageBase64: dataUrlMatch[2],
-        mimeType: `image/${dataUrlMatch[1]}`,
-        category: input.category,
-      };
-    }
-  }
-
-  throw new Error(
-    "Could not extract generated image from model response. " +
-    "Response format may have changed. Raw content type: " +
-    typeof choice.content +
-    ". Structure: " + JSON.stringify(choice.content).substring(0, 500)
-  );
+  console.log(`[ImageGen] Generated ${input.category} image successfully`);
+  return {
+    imageBase64: imageData,
+    mimeType: "image/png",
+    category: input.category,
+  };
 }
 
 /**
