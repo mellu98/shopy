@@ -196,7 +196,6 @@ export async function generateImage(
       prompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json",
     }),
   });
 
@@ -208,20 +207,39 @@ export async function generateImage(
   }
 
   const data = await response.json();
-  const imageData = data.data?.[0]?.b64_json;
+  const result = data.data?.[0];
 
-  if (!imageData) {
+  if (!result) {
     throw new Error(
       `No image in OpenAI response. Response: ${JSON.stringify(data).substring(0, 500)}`
     );
   }
 
-  console.log(`[ImageGen] Generated ${input.category} image successfully`);
-  return {
-    imageBase64: imageData,
-    mimeType: "image/png",
-    category: input.category,
-  };
+  // gpt-image-1.5 returns b64_json directly or a URL
+  if (result.b64_json) {
+    console.log(`[ImageGen] Generated ${input.category} image (base64)`);
+    return {
+      imageBase64: result.b64_json,
+      mimeType: "image/png",
+      category: input.category,
+    };
+  }
+
+  if (result.url) {
+    // Download the image and convert to base64
+    console.log(`[ImageGen] Generated ${input.category} image (URL), downloading...`);
+    const imgResponse = await fetch(result.url);
+    const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
+    return {
+      imageBase64: imgBuffer.toString("base64"),
+      mimeType: "image/png",
+      category: input.category,
+    };
+  }
+
+  throw new Error(
+    `Unexpected response format. Keys: ${Object.keys(result).join(", ")}`
+  );
 }
 
 /**
