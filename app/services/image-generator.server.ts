@@ -2,7 +2,7 @@ import type { ImageCategory, ImageGenerationInput, GeneratedImage } from "~/type
 
 /**
  * AI Image Generator — Ecommerce Visual Art Director
- * Uses OpenAI gpt-image-1 via /v1/images/edits for image generation.
+ * Uses OpenAI gpt-image-1.5 via /v1/images/edits for image generation.
  * Sends the product photo as reference + category-specific prompt.
  *
  * Flow:
@@ -173,7 +173,7 @@ export function categoryRequiresText(category: ImageCategory): boolean {
 }
 
 /**
- * Generate an e-commerce image using OpenAI gpt-image-1.
+ * Generate an e-commerce image using OpenAI gpt-image-1.5.
  * Uses /v1/images/edits with the product photo as reference.
  */
 export async function generateImage(
@@ -190,12 +190,12 @@ export async function generateImage(
   const formData = new FormData();
   formData.append("image", imageBlob, `product.${input.productImageMimeType === "image/png" ? "png" : "jpg"}`);
   formData.append("prompt", prompt);
-  formData.append("model", "gpt-image-1");
+  formData.append("model", "gpt-image-1.5");
   formData.append("n", "1");
   formData.append("size", "1024x1024");
   formData.append("response_format", "b64_json");
 
-  console.log(`[ImageGen] Generating ${input.category} via OpenAI gpt-image-1...`);
+  console.log(`[ImageGen] Generating ${input.category} via OpenAI gpt-image-1.5...`);
 
   const response = await fetch(OPENAI_IMAGES_URL, {
     method: "POST",
