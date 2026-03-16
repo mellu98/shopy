@@ -1,6 +1,6 @@
 name = "Theme Builder"
 client_id = "71f8ddb3142158ad05358cc435b9ccfd"
-application_url = "https://theme-builder-0q91.onrender.com"
+application_url = "https://theme-builder-0q91.onrender.com/app"
 embedded = true
 
 [access_scopes]
