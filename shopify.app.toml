@@ -1,6 +1,6 @@
 name = "Theme Builder"
-client_id = "YOUR_CLIENT_ID"
-application_url = "https://your-app-url.trycloudflare.com"
+client_id = "71f8ddb3142158ad05358cc435b9ccfd"
+application_url = "https://theme-builder-0q91.onrender.com"
 embedded = true
 
 [access_scopes]
@@ -8,9 +8,9 @@ scopes = "read_themes,write_themes,read_products,read_content"
 
 [auth]
 redirect_urls = [
-  "https://your-app-url.trycloudflare.com/auth/callback",
-  "https://your-app-url.trycloudflare.com/auth/shopify/callback",
-  "https://your-app-url.trycloudflare.com/api/auth/callback"
+  "https://theme-builder-0q91.onrender.com/auth/callback",
+  "https://theme-builder-0q91.onrender.com/auth/shopify/callback",
+  "https://theme-builder-0q91.onrender.com/api/auth/callback"
 ]
 
 [webhooks]
