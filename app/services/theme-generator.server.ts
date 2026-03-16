@@ -149,6 +149,36 @@ function assembleFinalFiles(
     });
   }
 
+  // Patch theme.liquid:
+  // 1. Replace section groups with direct section references (groups can't be uploaded via Asset API)
+  // 2. Add pagepilot-styles.css globally (it's only loaded on product pages by default)
+  const themeLayout = fileMap.get("layout/theme.liquid");
+  if (themeLayout) {
+    let layoutContent = themeLayout.value;
+    // Replace section groups with direct references
+    layoutContent = layoutContent.replace(
+      "{% sections 'header-group' %}",
+      "{% section 'header' %}"
+    );
+    layoutContent = layoutContent.replace(
+      "{% sections 'footer-group' %}",
+      "{% section 'footer' %}"
+    );
+    layoutContent = layoutContent.replace(
+      "{% sections 'popup-group' %}",
+      ""
+    );
+    // Inject pagepilot CSS globally (needed for PP sections on homepage/other pages)
+    layoutContent = layoutContent.replace(
+      "{{ content_for_header }}",
+      "{{ content_for_header }}\n    {{ 'pagepilot-styles.css' | asset_url | stylesheet_tag }}"
+    );
+    fileMap.set("layout/theme.liquid", {
+      key: "layout/theme.liquid",
+      value: layoutContent,
+    });
+  }
+
   // Remove template files that belong to the original store
   // (keep only standard templates + our generated ones)
   const templatesToRemove = [
