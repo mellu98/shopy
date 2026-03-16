@@ -19,7 +19,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     await authenticate.admin(request);
   } catch (err) {
     if (err instanceof Response) {
-      console.log("[AppLoader] Auth threw Response:", err.status, err.headers.get("location") || "");
+      const headers: Record<string, string> = {};
+      err.headers.forEach((v, k) => { headers[k] = v; });
+      console.log("[AppLoader] Auth threw Response:", err.status);
+      console.log("[AppLoader] Response headers:", JSON.stringify(headers));
+      const body = await err.clone().text();
+      console.log("[AppLoader] Response body length:", body.length);
+      console.log("[AppLoader] Response body preview:", body.slice(0, 500));
     } else {
       console.error("[AppLoader] Auth error:", err);
     }
