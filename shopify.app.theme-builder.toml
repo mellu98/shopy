@@ -12,7 +12,7 @@ automatically_update_urls_on_dev = true
 api_version = "2025-07"
 
 [access_scopes]
-scopes = "read_themes,write_themes,read_products,read_content"
+scopes = "read_themes,write_themes,read_products,read_content,write_files"
 
 [auth]
 redirect_urls = [
