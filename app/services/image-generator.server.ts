@@ -37,18 +37,17 @@ VISUAL RULES:
 - No props, no decorations — only the product itself
 - Maintain exact colors, proportions, labels, and materials from the reference image`,
 
-  lifestyle: `CATEGORY: Lifestyle
+  lifestyle: `CATEGORY: Lifestyle (Clean Product Shot)
 VISUAL RULES:
-- Place the product in a realistic, contextually appropriate environment
-- The scene must feel natural and aspirational — like a real photograph
-- Use minimal but relevant props that complement the product (not distract)
-- Lighting: natural light or realistic studio light, warm and inviting
-- The product must remain sharp, centered, and clearly the hero of the image
-- Background should be slightly soft/blurred to keep focus on the product
-- No text overlays unless absolutely coherent with the scene
-- If text is present, it MUST be in Italian
-- The environment must match the product's niche and target audience
-- Maintain exact product appearance: colors, shape, label, materials`,
+- Show ONLY the product on a completely TRANSPARENT or pure white background
+- NO background scene, NO environment, NO props, NO decorations
+- NO text, NO overlays, NO graphics, NO watermarks whatsoever
+- The product must be perfectly centered and fill ~70-80% of the frame
+- Lighting: soft, even studio lighting with gentle highlights on edges
+- The product must look premium, sharp, and photorealistic
+- Maintain exact product appearance: colors, shape, label, materials
+- This image will be placed inside a circular frame on the landing page, so keep the composition clean and centered
+- Think of this as a premium packshot on transparent/white background`,
 
   ingredients: `CATEGORY: Ingredients
 VISUAL RULES:
