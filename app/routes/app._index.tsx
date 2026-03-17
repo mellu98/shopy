@@ -158,7 +158,7 @@ export default function Index() {
   const [genStep, setGenStep] = useState(-1); // -1 = not started, 0-5 = current category
   const lastProcessedGenStep = useRef(-1);
   // product_photo is NOT generated — the merchant's uploaded photo is used directly
-  const ALL_CATEGORIES: ImageCategory[] = ["lifestyle", "social_proof", "ingredients", "infographic", "how_to_process"];
+  const ALL_CATEGORIES: ImageCategory[] = ["how_to_process", "social_proof", "ingredients", "infographic", "lifestyle"];
   const CATEGORY_LABELS: Record<ImageCategory, string> = {
     product_photo: "Product Photo",
     lifestyle: "Lifestyle",
@@ -271,14 +271,21 @@ export default function Index() {
 
     const formData = new FormData();
     formData.set("input", JSON.stringify(input));
+    submittedForStep.current = genStep;
     imageFetcher.submit(formData, { method: "post", action: "/app/api/generate-image" });
   }, [genStep, isGeneratingAll, imageFetcher.state]);
 
   // Process response and advance to next category
+  const submittedForStep = useRef(-1);
   useEffect(() => {
     if (!isGeneratingAll || genStep < 0) return;
     if (imageFetcher.state !== "idle" || !imageFetcher.data) return;
     if (lastProcessedGenStep.current === genStep) return;
+
+    // Guard: only process if we actually submitted a request for this step
+    // Prevents processing stale data when genStep advances before new request fires
+    if (submittedForStep.current !== genStep) return;
+
     lastProcessedGenStep.current = genStep;
 
     if (imageFetcher.data.success && imageFetcher.data.image) {
@@ -293,6 +300,7 @@ export default function Index() {
       setIsGeneratingAll(false);
       setGenStep(-1);
       lastProcessedGenStep.current = -1;
+      submittedForStep.current = -1;
     }
   }, [imageFetcher.state, imageFetcher.data, isGeneratingAll, genStep]);
 
