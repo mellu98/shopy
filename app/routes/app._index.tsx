@@ -157,7 +157,8 @@ export default function Index() {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [genStep, setGenStep] = useState(-1); // -1 = not started, 0-5 = current category
   const lastProcessedGenStep = useRef(-1);
-  const ALL_CATEGORIES: ImageCategory[] = ["product_photo", "lifestyle", "ingredients", "infographic", "how_to_process", "social_proof"];
+  // product_photo is NOT generated — the merchant's uploaded photo is used directly
+  const ALL_CATEGORIES: ImageCategory[] = ["lifestyle", "social_proof", "ingredients", "infographic", "how_to_process"];
   const CATEGORY_LABELS: Record<ImageCategory, string> = {
     product_photo: "Product Photo",
     lifestyle: "Lifestyle",
@@ -443,9 +444,18 @@ export default function Index() {
   const handleGenerate = useCallback(() => {
     const formData = new FormData();
     formData.set("config", JSON.stringify(config));
-    // Pass generated images for Shopify Files upload
-    if (generatedImages.length > 0) {
-      formData.set("images", JSON.stringify(generatedImages));
+    // Pass generated images + original product photo for Shopify Files upload
+    const allImages = [
+      // Include the uploaded product photo as "product_photo" category
+      ...(productImageBase64 ? [{
+        base64: productImageBase64,
+        mimeType: productImageMimeType,
+        category: "product_photo" as ImageCategory,
+      }] : []),
+      ...generatedImages,
+    ];
+    if (allImages.length > 0) {
+      formData.set("images", JSON.stringify(allImages));
     }
     submit(formData, { method: "post" });
   }, [config, generatedImages, submit]);
@@ -743,7 +753,7 @@ export default function Index() {
       <Text variant="headingMd" as="h3">AI Image Generation (Optional)</Text>
       <Banner tone="info">
         <p>
-          Upload a product photo and generate 6 images for your landing page.
+          Upload a product photo and generate 5 images for your landing page.
           Each image is optimized for a specific section (hero, lifestyle, ingredients, infographic, how-to, social proof).
         </p>
       </Banner>
@@ -775,7 +785,7 @@ export default function Index() {
               onClick={handleGenerateAllImages}
               disabled={!productImageBase64 || isGeneratingAll}
             >
-              Generate All 6 Images
+              Generate All 5 Images
             </Button>
           </InlineStack>
 
@@ -818,9 +828,9 @@ export default function Index() {
                   </div>
                 ))}
               </div>
-              {!isGeneratingAll && generatedImages.length === 6 && (
+              {!isGeneratingAll && generatedImages.length === ALL_CATEGORIES.length && (
                 <Banner tone="success">
-                  <p>All 6 images generated! They will be automatically placed in your landing page sections.</p>
+                  <p>All 5 images generated! They will be automatically placed in your landing page sections.</p>
                 </Banner>
               )}
             </BlockStack>
