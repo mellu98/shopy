@@ -71,13 +71,25 @@ export async function generateTheme(
           socialProofUrl || heroUrl || "",
         ].filter(Boolean);
 
-        // Map to imageTextSections
-        const imageUrls = [ingredientsUrl, infographicUrl, howToUrl].filter(Boolean) as string[];
-        for (let i = 0; i < imageUrls.length && i < config.imageTextSections.length; i++) {
-          config.imageTextSections[i].imageUrl = imageUrls[i];
+        // Map to imageTextSections — direct assignment (no shifting if one fails)
+        if (ingredientsUrl && config.imageTextSections[0]) {
+          config.imageTextSections[0].imageUrl = ingredientsUrl;
+        }
+        if (infographicUrl && config.imageTextSections[1]) {
+          config.imageTextSections[1].imageUrl = infographicUrl;
+        }
+        if (howToUrl && config.imageTextSections[2]) {
+          config.imageTextSections[2].imageUrl = howToUrl;
         }
 
-        console.log(`[ThemeGenerator] Successfully uploaded ${urlMap.size} images`);
+        console.log(`[ThemeGenerator] Successfully uploaded ${urlMap.size} images. URLs:`, {
+          hero: heroUrl ? 'YES' : 'NO',
+          lifestyle: lifestyleUrl ? 'YES' : 'NO',
+          ingredients: ingredientsUrl ? 'YES' : 'NO',
+          infographic: infographicUrl ? 'YES' : 'NO',
+          howTo: howToUrl ? 'YES' : 'NO',
+          socialProof: socialProofUrl ? 'YES' : 'NO',
+        });
       } catch (imgErr: any) {
         console.warn(`[ThemeGenerator] Image upload failed (non-fatal): ${imgErr.message}`);
         // Continue without images — theme still works, just no custom images
