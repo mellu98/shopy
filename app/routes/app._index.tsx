@@ -811,7 +811,7 @@ export default function Index() {
 
       {generatedImages.length > 0 && (
         <>
-          <Text variant="headingMd" as="h3">Generated Images ({generatedImages.length}/6)</Text>
+          <Text variant="headingMd" as="h3">Generated Images ({generatedImages.length}/{ALL_CATEGORIES.length})</Text>
           <Card>
             <BlockStack gap="400">
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px" }}>
