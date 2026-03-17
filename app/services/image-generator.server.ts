@@ -143,11 +143,39 @@ COPY LOGIC (when text is required):
 5. Maintain realistic, believable tone`;
 
 /**
+ * Build section-specific copy context for categories that render text in the image.
+ * This ensures images use the SAME copy as the landing page instead of inventing new text.
+ */
+function buildSectionCopyContext(input: ImageGenerationInput): string {
+  if (!input.sectionCopy) return "";
+
+  const { heading, text, benefits, features } = input.sectionCopy;
+  const lines: string[] = [
+    "\nPRE-GENERATED COPY (USE EXACTLY — do NOT invent new text):"
+  ];
+
+  if (heading) lines.push(`- Heading: "${heading}"`);
+  if (text) lines.push(`- Body text: "${text}"`);
+  if (benefits?.length) {
+    lines.push("- Benefits/callouts:");
+    benefits.forEach((b, i) => lines.push(`  ${i + 1}. "${b}"`));
+  }
+  if (features?.length) {
+    lines.push("- Feature callouts:");
+    features.forEach((f, i) => lines.push(`  ${i + 1}. "${f.title}" — ${f.description}`));
+  }
+
+  lines.push("CRITICAL: Use ONLY the text above. Do NOT add, rephrase, or invent additional text.");
+  return lines.join("\n");
+}
+
+/**
  * Build the complete prompt for image generation
  */
 function buildImagePrompt(input: ImageGenerationInput): string {
   const categoryPrompt = CATEGORY_PROMPTS[input.category];
   const lang = input.language === "en" ? "English" : "Italian";
+  const sectionCopyContext = buildSectionCopyContext(input);
 
   return `You are an Ecommerce Visual Art Director specialized in creating high-conversion images for landing pages and Shopify stores.
 
@@ -159,6 +187,7 @@ ${input.productDescription ? `- Description: ${input.productDescription}` : ""}
 - Language for all text: ${lang}
 
 ${categoryPrompt}
+${sectionCopyContext}
 
 ${GLOBAL_RULES}
 

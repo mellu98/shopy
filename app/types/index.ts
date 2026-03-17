@@ -239,6 +239,13 @@ export interface ImageGenerationInput {
   productName: string;
   productDescription?: string;
   language: "it" | "en";
+  /** Pre-generated copy for this section — used to keep image text consistent with landing page copy */
+  sectionCopy?: {
+    heading?: string;
+    text?: string;
+    benefits?: string[];
+    features?: Array<{ title: string; description: string }>;
+  };
 }
 
 /**

@@ -510,7 +510,11 @@ export function buildProductTemplate(config: MerchantConfig): object {
       },
       block_order: [headBlockId, percItemsId, percBtnId],
       settings: {
-        ...(config.product.lifestyleImages?.[1] ? { image: config.product.lifestyleImages[1] } : {}),
+        ...(config.product.lifestyleImages?.[1]
+          ? { image: config.product.lifestyleImages[1] }
+          : config.product.lifestyleImages?.[0]
+            ? { image: config.product.lifestyleImages[0] }
+            : {}),
         layout: "image_first",
         desktop_content_alignment: "left",
         mobile_content_alignment: "center",

@@ -3,7 +3,6 @@ import type { MerchantConfig, ThemeFile, ImageCategory } from "~/types";
 import { readMasterThemeFiles, readMasterThemeFile } from "./master-theme.server";
 import {
   buildProductTemplate,
-  buildHomepageTemplate,
   buildSettingsData,
 } from "./template-builder.server";
 import { createAndUploadTheme } from "./shopify-theme-api.server";
@@ -65,12 +64,11 @@ export async function generateTheme(
         const howToUrl = urlMap.get("how_to_process");
         const socialProofUrl = urlMap.get("social_proof");
 
-        if (heroUrl) {
-          config.homepage.heroImageUrl = heroUrl;
-        }
+        // heroUrl no longer needed for homepage (master theme kept as-is)
+        // lifestyleImages used in product landing page sections
         config.product.lifestyleImages = [
           lifestyleUrl || "",
-          socialProofUrl || "",
+          socialProofUrl || heroUrl || "",
         ].filter(Boolean);
 
         // Map to imageTextSections
@@ -89,9 +87,8 @@ export async function generateTheme(
     // Step 1: Read all master theme files
     const masterFiles = readMasterThemeFiles();
 
-    // Step 2: Build custom templates
+    // Step 2: Build custom templates (homepage uses master theme as-is)
     const productTemplate = buildProductTemplate(config);
-    const homepageTemplate = buildHomepageTemplate(config);
 
     // Step 3: Patch settings_data.json
     const originalSettings = readMasterThemeFile("config/settings_data.json");
@@ -103,11 +100,10 @@ export async function generateTheme(
       );
     }
 
-    // Step 4: Assemble the final file list
+    // Step 4: Assemble the final file list (homepage kept from master theme)
     const finalFiles = assembleFinalFiles(
       masterFiles,
       productTemplate,
-      homepageTemplate,
       settingsData
     );
 
@@ -159,15 +155,13 @@ export async function generateTheme(
 
 /**
  * Assemble the final list of theme files:
- * - Start with all master theme files
+ * - Start with all master theme files (homepage kept as-is from master)
  * - Replace/add the generated product template
- * - Replace/add the generated homepage template
  * - Replace settings_data.json with patched version
  */
 function assembleFinalFiles(
   masterFiles: ThemeFile[],
   productTemplate: object,
-  homepageTemplate: object,
   settingsData: any
 ): ThemeFile[] {
   // Convert master files to a map for easy replacement
@@ -182,11 +176,8 @@ function assembleFinalFiles(
     value: JSON.stringify(productTemplate, null, 2),
   });
 
-  // Replace homepage template
-  fileMap.set("templates/index.json", {
-    key: "templates/index.json",
-    value: JSON.stringify(homepageTemplate, null, 2),
-  });
+  // Homepage (templates/index.json) is NOT replaced — master theme's
+  // generic homepage with its own images and copy is kept as-is.
 
   // Replace settings_data.json
   if (Object.keys(settingsData).length > 0) {

@@ -235,6 +235,29 @@ export default function Index() {
     if (imageFetcher.state !== "idle") return;
 
     const category = ALL_CATEGORIES[genStep];
+
+    // Map each image category to its pre-generated copy section
+    // so images use the SAME text as the landing page (no repetition)
+    type SectionCopy = { heading?: string; text?: string; benefits?: string[]; features?: Array<{ title: string; description: string }> };
+    const sectionCopyMap: Record<string, SectionCopy | undefined> = {
+      product_photo: undefined, // no text in packshot
+      lifestyle: config.imageTextSections?.[0]
+        ? { heading: config.imageTextSections[0].heading, text: config.imageTextSections[0].text }
+        : undefined,
+      ingredients: config.product.benefits?.length
+        ? { heading: config.product.title, benefits: config.product.benefits.map((b: { text: string }) => b.text) }
+        : undefined,
+      infographic: config.product.features?.length
+        ? { heading: config.product.title, features: config.product.features.map((f: { title: string; description: string }) => ({ title: f.title, description: f.description })) }
+        : undefined,
+      how_to_process: config.imageTextSections?.[1]
+        ? { heading: config.imageTextSections[1].heading, text: config.imageTextSections[1].text }
+        : undefined,
+      social_proof: config.imageTextSections?.[2]
+        ? { heading: config.imageTextSections[2].heading, text: config.imageTextSections[2].text }
+        : undefined,
+    };
+
     const input = {
       productImageBase64,
       productImageMimeType,
@@ -242,6 +265,7 @@ export default function Index() {
       productName: config.product.title || copyInput.productName || "Product",
       productDescription: config.product.description || copyInput.productDescription || "",
       language: copyInput.language || "it",
+      sectionCopy: sectionCopyMap[category],
     };
 
     const formData = new FormData();
